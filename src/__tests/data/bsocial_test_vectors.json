@@ -1,0 +1,28 @@
+{
+  "description": "BSocial Protocol Test Vectors",
+  "version": "1.0.0",
+  "vectors": [
+    {
+      "name": "bsocial_post_basic_1",
+      "description": "BSocial post from real transaction data",
+      "txid": "266c2a52d7d1f30709c847424d8195eeef8a0172f190be6244e5c8a1c2e44d94",
+      "expected": {
+        "has_bsocial": true,
+        "has_post": true,
+        "type": "post",
+        "has_content": true
+      }
+    },
+    {
+      "name": "bsocial_post_basic_2", 
+      "description": "BSocial post that is replied to",
+      "txid": "38c914d2c47c2ff063cf9f5705e3ceaa557aca4092ed5047177d5e8f913c0b69",
+      "expected": {
+        "has_bsocial": true,
+        "has_post": true,
+        "type": "post",
+        "has_content": true
+      }
+    }
+  ]
+}

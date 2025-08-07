@@ -1,4 +1,4 @@
-import Metanet from '../Metanet'
+import Metanet from '../../../template/metanet/Metanet'
 import { PrivateKey, Utils } from '@bsv/sdk'
 
 describe('Metanet template', () => {

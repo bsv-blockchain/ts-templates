@@ -1,0 +1,37 @@
+{
+  "description": "BitCom Protocol Test Vectors",
+  "version": "1.0.0",
+  "vectors": [
+    {
+      "name": "aip_identity_basic",
+      "description": "AIP identity transaction from BAP",
+      "txid": "744a55a8637aa191aa058630da51803abbeadc2de3d65b4acace1f5f10789c5b",
+      "expected": {
+        "has_aip": true,
+        "signing_protocol": "BITCOIN_ECDSA",
+        "signing_address": "15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva",
+        "verified": true
+      }
+    },
+    {
+      "name": "bsocial_post_1",
+      "description": "BSocial post transaction",
+      "txid": "266c2a52d7d1f30709c847424d8195eeef8a0172f190be6244e5c8a1c2e44d94",
+      "expected": {
+        "has_bsocial": true,
+        "has_post": true,
+        "type": "post"
+      }
+    },
+    {
+      "name": "bsocial_post_2",
+      "description": "BSocial post transaction (reply target)",
+      "txid": "38c914d2c47c2ff063cf9f5705e3ceaa557aca4092ed5047177d5e8f913c0b69",
+      "expected": {
+        "has_bsocial": true,
+        "has_post": true,
+        "type": "post"
+      }
+    }
+  ]
+}

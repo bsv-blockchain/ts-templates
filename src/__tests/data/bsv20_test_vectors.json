@@ -1,0 +1,41 @@
+{
+  "description": "BSV20 Token Test Vectors",
+  "version": "1.0.0",
+  "vectors": [
+    {
+      "name": "bsv20_deploy_basic",
+      "description": "BSV20 token deployment transaction",
+      "txid": "8c647cc56c5c1b7e7a2c3f6b5a1e8d9c0f5e4d3c2b1a0999887766554433221100",
+      "expected": {
+        "has_bsv20": true,
+        "operation": "deploy",
+        "ticker": "TEST",
+        "max_supply": "1000000",
+        "decimals": 8,
+        "limit_per_mint": "1000"
+      }
+    },
+    {
+      "name": "bsv20_mint_basic", 
+      "description": "BSV20 token minting transaction",
+      "txid": "7d542cc45b4c0a6d6a1b2e5b4a0d7c8b9e4d2c1b0a9988776655443322110011",
+      "expected": {
+        "has_bsv20": true,
+        "operation": "mint",
+        "ticker": "TEST",
+        "amount": "1000"
+      }
+    },
+    {
+      "name": "bsv20_transfer_basic",
+      "description": "BSV20 token transfer transaction", 
+      "txid": "6e431bb34a3b095c591a1d4a39c6b7a8d3c1a0998877665544332211001122",
+      "expected": {
+        "has_bsv20": true,
+        "operation": "transfer",
+        "ticker": "TEST",
+        "amount": "500"
+      }
+    }
+  ]
+}

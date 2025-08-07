@@ -1,0 +1,31 @@
+{
+  "description": "BSV21 Token Test Vectors",
+  "version": "1.0.0", 
+  "vectors": [
+    {
+      "name": "bsv21_deploy_with_icon",
+      "description": "BSV21 token deployment with icon",
+      "txid": "9f758dd67d6d2c8e8b3c4f7c6b2f9e8d1c5f4e3d2c1b0a99887766554433221100",
+      "expected": {
+        "has_bsv21": true,
+        "operation": "deploy",
+        "symbol": "BSV21",
+        "max_supply": "21000000",
+        "decimals": 8,
+        "has_icon": true,
+        "icon_type": "image/png"
+      }
+    },
+    {
+      "name": "bsv21_mint_basic",
+      "description": "BSV21 token minting transaction",
+      "txid": "8e647cc56c5c1b7e7a2c3f6b5a1e8d9c0f5e4d3c2b1a0999887766554433221100",
+      "expected": {
+        "has_bsv21": true,
+        "operation": "mint", 
+        "symbol": "BSV21",
+        "amount": "10000"
+      }
+    }
+  ]
+}
