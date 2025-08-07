@@ -92,7 +92,7 @@ tx.addOutput({
 ```
 
 ## Planned Templates
-For upcoming templates and development phases, see [ROADMAP.md](./ROADMAP.md).
+
 
 ## Contribution Guidelines
 
