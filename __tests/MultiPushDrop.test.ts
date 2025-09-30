@@ -1,5 +1,5 @@
-import MultiPushDrop from '../MultiPushDrop'
-import { OP, WalletInterface, WalletCounterparty, PubKeyHex, SecurityLevel, Transaction, CompletedProtoWallet, PrivateKey, PublicKey, Utils, Script, Spend, LockingScript, UnlockingScript } from '@bsv/sdk'
+import { MultiPushDrop } from '../src/MultiPushDrop'
+import { OP, WalletInterface, PubKeyHex, SecurityLevel, Transaction, CompletedProtoWallet, PrivateKey, Utils, Script, Spend, LockingScript, UnlockingScript } from '@bsv/sdk'
 
 // Helper function like createDecodeRedeem from PushDrop tests
 const testLockUnlockDecode = async (
@@ -49,7 +49,6 @@ const testLockUnlockDecode = async (
   for (let i = 0; i < ownerPrivateKeys.length; i++) {
     const ownerWallet = new CompletedProtoWallet(ownerPrivateKeys[i])
     const ownerMultiPushDrop = new MultiPushDrop(ownerWallet)
-    console.log(`Testing unlock with counterparty index ${i}`)
 
     const unlockingTemplate = ownerMultiPushDrop.unlock(
       protocolID,

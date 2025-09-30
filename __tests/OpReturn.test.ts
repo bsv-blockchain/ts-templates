@@ -1,4 +1,4 @@
-import OpReturn from '../OpReturn'
+import { OpReturn } from '../src/OpReturn'
 
 describe('OpReturn script', () => {
   it('locks OpReturn data', () => {

@@ -58,8 +58,7 @@
     "ts-jest": "^29.1.1",
     "ts-standard": "^12.0.2",
     "tsconfig-to-dual-package": "^1.2.0",
-    "typescript": "^5.2.2",
-    "vitest": "^3.2.4"
+    "typescript": "^5.2.2"
   },
   "dependencies": {
     "@bsv/sdk": "^1.7.6"

@@ -3,13 +3,13 @@ import { ScriptTemplate, LockingScript, UnlockingScript, OP, Hash, PublicKey, Tr
 export type MultiSigInstructions = {
     keyID: string
     counterparty: string
-    forSelf: boolean
+    pubkeys: string[]
 }
 
 export class MultiSigPubkeyHash implements ScriptTemplate {
 
     static address(pubkeys: PublicKey[], threshold: number): string {
-        const concat = pubkeys.map((p) => p.encode(true) as number[]).reduce((a, b) => a.concat(b), [])
+        const concat = pubkeys.map((p) => p.toDER() as number[]).reduce((a, b) => a.concat(b), [])
         const hash = Hash.hash160(concat)
         const writer = new Utils.Writer()
         writer.write(hash)
@@ -19,7 +19,7 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
         return Utils.toBase58Check(data, [0x98])
     }
 
-    static async addressBRC29(wallet: WalletInterface, counterparties: string[], keyID: string, threshold: number): Promise<string> {
+    static async addressBRC29(wallet: WalletInterface, counterparties: string[], keyID: string, threshold: number): Promise<{ pubkeys: string[], address: string }> {
         const pubkeys = await Promise.all(counterparties.map(async (counterparty) => {
             const { publicKey } = await wallet.getPublicKey({
                 protocolID: [1, "multi sig brc29"],
@@ -28,7 +28,7 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
             })
             return PublicKey.fromString(publicKey)
         }))
-        return this.address(pubkeys, threshold)
+        return { pubkeys: pubkeys.map(p => p.toString()), address: this.address(pubkeys, threshold) }
     }
 
     static thresholdAndTotalFromAddress(address: string): { hash: number[], threshold: number, total: number } {
@@ -36,8 +36,8 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
         if (h.prefix[0] !== 0x98) {
             throw new Error('only P2MSH is supported, set your prefix byte to 0x98')
         }
-        const hash = h.data as number[]
-        const reader = new Utils.Reader(hash)
+        const reader = new Utils.Reader(h.data as number[])
+        const hash = reader.read(20)
         const threshold = reader.readVarIntNum()
         const total = reader.readVarIntNum()
         return { hash, threshold, total }
@@ -52,7 +52,7 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
         let total: number
         if (address) {
             if (typeof address !== 'string') throw new Error('address must be a string')
-            const result = MultiSig.thresholdAndTotalFromAddress(address)
+            const result = MultiSigPubkeyHash.thresholdAndTotalFromAddress(address)
             hash = result.hash
             total = result.total
             threshold = result.threshold
@@ -65,18 +65,19 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
 
         const script = new LockingScript();
         for (let i = 0; i < total - 1; i++) {
-            // duplicate the total number of pubkeys then concatenate them
-            script.writeOpCode(OP.OP_DUP)
-            script.writeOpCode(OP.OP_TOALTSTACK)
             script.writeOpCode(OP.OP_CAT)
         }
         script
+            .writeOpCode(OP.OP_DUP)
             .writeOpCode(OP.OP_HASH160)
             .writeBin(hash)
             .writeOpCode(OP.OP_EQUALVERIFY)
             .writeNumber(threshold)
+            .writeOpCode(OP.OP_SWAP);
         for (let i = 0; i < total - 1; i++) {
-            script.writeOpCode(OP.OP_FROMALTSTACK)
+            script
+                .writeNumber(33)
+                .writeOpCode(OP.OP_SPLIT)
         }
         script.writeNumber(total)
         script.writeOpCode(OP.OP_CHECKMULTISIG);
@@ -101,6 +102,9 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
                 if (!workingUnlockingScript) {
                         workingUnlockingScript = new UnlockingScript()
                         workingUnlockingScript.writeOpCode(OP.OP_0)
+                        customInstructions.pubkeys.forEach((pubkey) => {
+                            workingUnlockingScript!.writeBin(PublicKey.fromString(pubkey).toDER() as number[])
+                        })
                     }
                     let signatureScope = TransactionSignature.SIGHASH_FORKID;
                     if (signOutputs === "all") {
@@ -170,22 +174,10 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
                 const sig = new TransactionSignature(s.r, s.s, signatureScope)
                 const sigForScript = sig.toChecksigFormat()
 
-                const { publicKey } = await wallet.getPublicKey({
-                    protocolID: [1, "multi sig brc29"],
-                    keyID: customInstructions.keyID,
-                    counterparty: customInstructions.counterparty,
-                    forSelf: true
-                })
-                const publicKeyForScript = PublicKey.fromString(publicKey).toDER() as number[]
-
                 workingUnlockingScript.writeBin(sigForScript)
                 const chunkforSig = workingUnlockingScript.chunks.pop() as ScriptChunk
-                workingUnlockingScript.writeBin(publicKeyForScript)
-                const chunkforPubKey = workingUnlockingScript.chunks.pop() as ScriptChunk
                 // add it to the array at position 1, pushing the other content to the right
                 workingUnlockingScript.chunks.splice(1, 0, chunkforSig)
-                // add it to the end of the workingUnlockingScript.chunks
-                workingUnlockingScript.chunks.push(chunkforPubKey)
                 return workingUnlockingScript
             },
 

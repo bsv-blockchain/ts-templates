@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { Transaction, UnlockingScript, MerklePath, P2PKH, PrivateKey } from '@bsv/sdk';
-import { MockChain, wallet, makeWallet } from './test-utils';
+import { Transaction, UnlockingScript, MerklePath, P2PKH, PrivateKey, PublicKey, OP } from '@bsv/sdk';
+import { MockChain, makeWallet } from './test-utils';
 import { MultiSigPubkeyHash } from '../src/MultiSigPubkeyHash';
 
 const key = PrivateKey.fromRandom()
@@ -22,7 +21,13 @@ describe('MultiSigPubkeyHash', () => {
         }))
 
         const keyID = new Date().toISOString()
-        const multiSigAddress = await MultiSigPubkeyHash.addressBRC29(wallet, publicKeys, keyID, 1)
+        const { address: multiSigAddress, pubkeys } = await MultiSigPubkeyHash.addressBRC29(wallet, publicKeys, keyID, 1)
+
+        const customInstructions = {
+            keyID,
+            counterparty,
+            pubkeys
+        }
 
         const sourceTransaction = new Transaction()
         sourceTransaction.addInput({
@@ -42,12 +47,14 @@ describe('MultiSigPubkeyHash', () => {
         const txid = sourceTransaction.id('hex')
         sourceTransaction.merklePath = new MerklePath(0, [[{ txid: true, offset: 0, hash: txid }]])
         const mockChain = new MockChain({ blockheaders: [txid] })
+
+        console.log(sourceTransaction.outputs[0].lockingScript.toASM())
     
         const tx = new Transaction()
         tx.addInput({
             sourceTransaction,
             sourceOutputIndex: 0,
-            unlockingScriptTemplate: new MultiSigPubkeyHash().unlock(player1, { keyID, counterparty, forSelf: true })
+            unlockingScriptTemplate: new MultiSigPubkeyHash().unlock(player1, customInstructions)
         })
         tx.addInput({
             sourceTransaction,
@@ -60,6 +67,8 @@ describe('MultiSigPubkeyHash', () => {
         })
         await tx.fee()
         await tx.sign()
+
+        console.log(tx.toHexBEEF())
 
         const passes = await tx.verify(mockChain)
         expect(passes).toBe(true)

@@ -25,8 +25,6 @@ export async function makeWallet (
   return wallet
 }
 
-export const wallet = await makeWallet()
-
 export class MockChain implements ChainTracker {
   mock: { blockheaders: [string] }
   constructor(mock: { blockheaders: [string] }) {
