@@ -7,10 +7,10 @@ const key = PrivateKey.fromRandom()
 describe('MultiSigPubkeyHash', () => {
     it('should create a valid locking script for MultiSigPubkeyHash and unlock it', async () => {
         
-        const wallet = await makeWallet('main', 'https://storage.babbage.systems', PrivateKey.fromRandom().toString())
-        const player1 = await makeWallet('main', 'https://storage.babbage.systems', PrivateKey.fromRandom().toString())
-        const player2 = await makeWallet('main', 'https://storage.babbage.systems', PrivateKey.fromRandom().toString())
-        const player3 = await makeWallet('main', 'https://storage.babbage.systems', PrivateKey.fromRandom().toString())
+        const wallet = await makeWallet()
+        const player1 = await makeWallet()
+        const player2 = await makeWallet()
+        const player3 = await makeWallet()
         const players = [player1, player2, player3]
 
         const { publicKey: counterparty } = await wallet.getPublicKey({ identityKey: true })
@@ -63,8 +63,13 @@ describe('MultiSigPubkeyHash', () => {
             change: true,
             lockingScript: new P2PKH().lock(key.toAddress())
         })
+
+        const estimateSize = await tx.inputs[0].unlockingScriptTemplate?.estimateLength(tx, 0)
+
         await tx.fee()
         await tx.sign()
+
+        expect(estimateSize).toBe(tx.inputs[0]?.unlockingScript?.toBinary().length)
 
         const passes = await tx.verify(mockChain)
         expect(passes).toBe(true)

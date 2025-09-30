@@ -6,10 +6,14 @@ export type MultiSigInstructions = {
     pubkeys: string[]
 }
 
+function concatPubkeys(pubkeys: PublicKey[]): number[] {
+    return pubkeys.map((p) => p.toDER() as number[]).reduce((a, b) => a.concat(b), [])
+}
+
 export class MultiSigPubkeyHash implements ScriptTemplate {
 
     static address(pubkeys: PublicKey[], threshold: number): string {
-        const concat = pubkeys.map((p) => p.toDER() as number[]).reduce((a, b) => a.concat(b), [])
+        const concat = concatPubkeys(pubkeys)
         const hash = Hash.hash160(concat)
         const writer = new Utils.Writer()
         writer.write(hash)
@@ -58,7 +62,7 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
             threshold = result.threshold
         } else {
             if (!pubkeys || pubkeys.length < 2 || pubkeys.length < threshold) throw new Error(`at least ${threshold} pubkeys are required, or use an address`)
-            const concat = pubkeys.map((p) => p.encode(true) as number[]).reduce((a, b) => a.concat(b), [])
+            const concat = concatPubkeys(pubkeys)
             hash = Hash.hash160(concat)
             total = pubkeys.length
         }
@@ -186,15 +190,15 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
             estimateLength: (tx: Transaction, inputIndex: number) => {
                 let numberOfPubkeys = 2
                 let numberOfSignatures = 1
-                const staticLength = 6
+                const staticLength = 28
                 const input = tx.inputs[inputIndex];
                 const lockingScript = input.sourceTransaction?.outputs[input.sourceOutputIndex].lockingScript;
                 if (!lockingScript) {
                     return Promise.resolve(1000) // guess
                 }
-                let chunks = lockingScript.chunks.length - 6 // remove static opcodes
-                const numPubKeys = chunks / 4
-                const thresholdPos = 6 + ((numPubKeys - 1) * 3)
+                let chunks = lockingScript.chunks.length - 8 // remove static chunks
+                const numPubKeys = Math.floor(chunks / 3)
+                const thresholdPos = 5 + (numPubKeys - 1)
                 const n = lockingScript?.chunks[thresholdPos] as { op: number, data: number[] }
                 if (!n.data) {
                     numberOfSignatures = 1 + (n.op as number) - OP.OP_1
@@ -203,7 +207,7 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
                     const threshold = reader.readInt64LEBn()
                     numberOfSignatures = threshold.toNumber()
                 }
-                return Promise.resolve(staticLength + (numberOfPubkeys * 33) + (numberOfSignatures * 72))
+                return Promise.resolve(staticLength + (numberOfPubkeys * 34) + (numberOfSignatures * 73))
             }
         }
     }

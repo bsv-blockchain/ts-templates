@@ -1,14 +1,10 @@
 import { PrivateKey, KeyDeriver, WalletInterface, ChainTracker } from '@bsv/sdk'
 import { Wallet, WalletStorageManager, WalletSigner, Services, StorageClient } from '@bsv/wallet-toolbox'
-import { config } from 'dotenv'
-config()
-
-const PRIVATE_KEY: string = process.env.PRIVATE_KEY || ''
 
 export async function makeWallet (
   chain: 'test' | 'main' = 'main',
-  storageURL: string = 'https://storage.babbage.systems',
-  privateKey: string = PRIVATE_KEY
+  storageURL: string = 'https://store-us-1.bsvb.tech',
+  privateKey: string = PrivateKey.fromRandom().toString()
 ): Promise<WalletInterface> {
   const keyDeriver = new KeyDeriver(new PrivateKey(privateKey, 'hex'))
   const storageManager = new WalletStorageManager(keyDeriver.identityKey)
