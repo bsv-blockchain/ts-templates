@@ -57,7 +57,7 @@ export interface MultiPushDropDecoded {
  * keys but involving more than a few people than just a few into a FULLY TRUST BASED exchange
  * is never a good idea. Use a more robust, application-specific mechanism.
  */
-export default class MultiPushDrop implements ScriptTemplate {
+export class MultiPushDrop implements ScriptTemplate {
   wallet: WalletInterface
   originator?: string
 
