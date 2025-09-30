@@ -47,8 +47,6 @@ describe('MultiSigPubkeyHash', () => {
         const txid = sourceTransaction.id('hex')
         sourceTransaction.merklePath = new MerklePath(0, [[{ txid: true, offset: 0, hash: txid }]])
         const mockChain = new MockChain({ blockheaders: [txid] })
-
-        console.log(sourceTransaction.outputs[0].lockingScript.toASM())
     
         const tx = new Transaction()
         tx.addInput({
@@ -67,8 +65,6 @@ describe('MultiSigPubkeyHash', () => {
         })
         await tx.fee()
         await tx.sign()
-
-        console.log(tx.toHexBEEF())
 
         const passes = await tx.verify(mockChain)
         expect(passes).toBe(true)

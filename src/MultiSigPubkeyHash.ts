@@ -163,8 +163,10 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
                     scope: signatureScope,
                 })
 
+                const hashToDirectlySign = Hash.hash256(preimage)
+
                 const { signature } = await wallet.createSignature({
-                    data: preimage,
+                    hashToDirectlySign,
                     protocolID: [1, "multi sig brc29"],
                     counterparty: customInstructions.counterparty,
                     keyID: customInstructions.keyID,
