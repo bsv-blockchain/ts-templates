@@ -119,53 +119,52 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
         return {
             sign: async (tx: Transaction, inputIndex: number) => {
                 if (!workingUnlockingScript) {
-                        workingUnlockingScript = new UnlockingScript()
-                        workingUnlockingScript.writeOpCode(OP.OP_0)
-                        customInstructions.pubkeys.forEach((pubkey) => {
-                            workingUnlockingScript!.writeBin(PublicKey.fromString(pubkey).toDER() as number[])
-                        })
-                    }
-                    let signatureScope = TransactionSignature.SIGHASH_FORKID;
-                    if (signOutputs === "all") {
-                        signatureScope |= TransactionSignature.SIGHASH_ALL;
-                    }
-                    if (signOutputs === "none") {
-                        signatureScope |= TransactionSignature.SIGHASH_NONE;
-                    }
-                    if (signOutputs === "single") {
-                        signatureScope |= TransactionSignature.SIGHASH_SINGLE;
-                    }
-                    if (anyoneCanPay) {
-                        signatureScope |= TransactionSignature.SIGHASH_ANYONECANPAY;
-                    }
-                    const input = tx.inputs[inputIndex];
-        
-                    const otherInputs = tx.inputs.filter(
-                    (_, index) => index !== inputIndex
-                    )
+                    workingUnlockingScript = new UnlockingScript()
+                    workingUnlockingScript.writeOpCode(OP.OP_0)
+                    customInstructions.pubkeys.forEach((pubkey) => {
+                        workingUnlockingScript!.writeBin(PublicKey.fromString(pubkey).toDER() as number[])
+                    })
+                }
+
+                let signatureScope = TransactionSignature.SIGHASH_FORKID;
+                if (signOutputs === "all") {
+                    signatureScope |= TransactionSignature.SIGHASH_ALL;
+                }
+                if (signOutputs === "none") {
+                    signatureScope |= TransactionSignature.SIGHASH_NONE;
+                }
+                if (signOutputs === "single") {
+                    signatureScope |= TransactionSignature.SIGHASH_SINGLE;
+                }
+                if (anyoneCanPay) {
+                    signatureScope |= TransactionSignature.SIGHASH_ANYONECANPAY;
+                }
+                const input = tx.inputs[inputIndex];
+    
+                const otherInputs = tx.inputs.filter(
+                (_, index) => index !== inputIndex
+                )
 
                 const sourceTXID = input.sourceTXID
-                ? input.sourceTXID
-                : input.sourceTransaction?.id("hex");
+                    ? input.sourceTXID
+                    : input.sourceTransaction?.id("hex")
+                
                 if (!sourceTXID) {
-                throw new Error(
-                    "The input sourceTXID or sourceTransaction is required for transaction signing."
-                );
+                    throw new Error(
+                        "The input sourceTXID or sourceTransaction is required for transaction signing."
+                    )
                 }
-                sourceSatoshis ||=
-                input.sourceTransaction?.outputs[input.sourceOutputIndex].satoshis;
+                sourceSatoshis ||= input.sourceTransaction?.outputs[input.sourceOutputIndex].satoshis;
                 if (!sourceSatoshis) {
-                throw new Error(
-                    "The sourceSatoshis or input sourceTransaction is required for transaction signing."
-                );
+                    throw new Error(
+                        "The sourceSatoshis or input sourceTransaction is required for transaction signing."
+                    )
                 }
-                lockingScript ||=
-                input.sourceTransaction?.outputs[input.sourceOutputIndex]
-                    .lockingScript;
+                lockingScript ||= input.sourceTransaction?.outputs[input.sourceOutputIndex].lockingScript;
                 if (!lockingScript) {
-                throw new Error(
-                    "The lockingScript or input sourceTransaction is required for transaction signing."
-                );
+                    throw new Error(
+                        "The lockingScript or input sourceTransaction is required for transaction signing."
+                    )
                 }
 
                 const preimage = TransactionSignature.format({
@@ -197,8 +196,8 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
 
                 workingUnlockingScript.writeBin(sigForScript)
                 const chunkforSig = workingUnlockingScript.chunks.pop() as ScriptChunk
-                // add it to the array at position 1, pushing the other content to the right
-                workingUnlockingScript.chunks.splice(1, 0, chunkforSig)
+                // add it to the array before the pubkeys, pushing the other content to the right
+                workingUnlockingScript.chunks.splice(workingUnlockingScript.chunks.length - customInstructions.pubkeys.length, 0, chunkforSig)
                 return workingUnlockingScript
             },
 
