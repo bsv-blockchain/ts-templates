@@ -25,6 +25,8 @@ function numberFromScriptChunk(chunk: ScriptChunk): number {
 export class MultiSigPubkeyHash implements ScriptTemplate {
 
     static address(pubkeys: PublicKey[], threshold: number): string {
+        if (threshold < 1 || threshold > pubkeys.length) throw new Error('threshold must be between 1 and the number of pubkeys')
+        if (!pubkeys || pubkeys.length < 2 || pubkeys.length < threshold) throw new Error(`at least ${threshold || 2} pubkeys are required`)
         const concat = concatPubkeys(pubkeys)
         const hash = Hash.hash160(concat)
         const writer = new Utils.Writer()
@@ -63,9 +65,9 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
         address?: string,
         pubkeys?: PublicKey[],
         threshold: number = 1,
-    ): LockingScript {
+    ): LockingScript {        
         let hash: number[]
-        let total: number
+        let total: number = pubkeys?.length || 0
         if (address) {
             if (typeof address !== 'string') throw new Error('address must be a string')
             const result = MultiSigPubkeyHash.thresholdAndTotalFromAddress(address)
@@ -73,12 +75,13 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
             total = result.total
             threshold = result.threshold
         } else {
-            if (!pubkeys || pubkeys.length < 2 || pubkeys.length < threshold) throw new Error(`at least ${threshold} pubkeys are required, or use an address`)
+            if (!pubkeys || total < 2) throw new Error(`at least 2 pubkeys are required`)
             const concat = concatPubkeys(pubkeys)
             hash = Hash.hash160(concat)
-            total = pubkeys.length
         }
-
+        if (!threshold || threshold < 1 || threshold > total) throw new Error('threshold must be between 1 and the number of pubkeys')
+        if (total > 10) throw new Error('total must be less than or equal to 10')
+    
         const script = new LockingScript();
         for (let i = 0; i < total - 1; i++) {
             script.writeOpCode(OP.OP_CAT)
