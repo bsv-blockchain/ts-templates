@@ -10,6 +10,18 @@ function concatPubkeys(pubkeys: PublicKey[]): number[] {
     return pubkeys.map((p) => p.toDER() as number[]).reduce((a, b) => a.concat(b), [])
 }
 
+function numberFromScriptChunk(chunk: ScriptChunk): number {
+    let returnNum: number
+    if (!chunk.data) {
+        returnNum = 1 + (chunk.op as number) - OP.OP_1
+    } else {
+        const reader = new Utils.Reader(chunk.data)
+        const threshold = reader.readInt64LEBn()
+        returnNum = threshold.toNumber()
+    }
+    return returnNum
+}
+
 export class MultiSigPubkeyHash implements ScriptTemplate {
 
     static address(pubkeys: PublicKey[], threshold: number): string {
@@ -190,24 +202,20 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
             estimateLength: (tx: Transaction, inputIndex: number) => {
                 let numberOfPubkeys = 2
                 let numberOfSignatures = 1
-                const staticLength = 28
+                const staticLength = 1
                 const input = tx.inputs[inputIndex];
                 const lockingScript = input.sourceTransaction?.outputs[input.sourceOutputIndex].lockingScript;
                 if (!lockingScript) {
                     return Promise.resolve(1000) // guess
                 }
-                let chunks = lockingScript.chunks.length - 8 // remove static chunks
-                const numPubKeys = Math.floor(chunks / 3)
-                const thresholdPos = 5 + (numPubKeys - 1)
-                const n = lockingScript?.chunks[thresholdPos] as { op: number, data: number[] }
-                if (!n.data) {
-                    numberOfSignatures = 1 + (n.op as number) - OP.OP_1
-                } else {
-                    const reader = new Utils.Reader(n.data)
-                    const threshold = reader.readInt64LEBn()
-                    numberOfSignatures = threshold.toNumber()
-                }
-                return Promise.resolve(staticLength + (numberOfPubkeys * 34) + (numberOfSignatures * 73))
+
+                const totalChunk = lockingScript?.chunks[lockingScript.chunks.length - 2] as { op: number, data: number[] }
+                numberOfPubkeys = numberFromScriptChunk(totalChunk)
+
+                const thresholdPos = lockingScript.chunks.map(chunk => chunk.op === OP.OP_EQUALVERIFY).indexOf(true) + 1
+                const thresholdChunk = lockingScript?.chunks[thresholdPos] as { op: number, data: number[] }
+                numberOfSignatures = numberFromScriptChunk(thresholdChunk)
+                return Promise.resolve(staticLength + (numberOfSignatures * 74) +   (numberOfPubkeys * 34))
             }
         }
     }

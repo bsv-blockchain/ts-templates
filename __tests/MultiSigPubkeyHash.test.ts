@@ -1,4 +1,4 @@
-import { Transaction, UnlockingScript, MerklePath, P2PKH, PrivateKey, PublicKey, OP } from '@bsv/sdk';
+import { Transaction, UnlockingScript, MerklePath, P2PKH, PrivateKey } from '@bsv/sdk';
 import { MockChain, makeWallet } from './test-utils';
 import { MultiSigPubkeyHash } from '../src/MultiSigPubkeyHash';
 
@@ -69,7 +69,7 @@ describe('MultiSigPubkeyHash', () => {
         await tx.fee()
         await tx.sign()
 
-        expect(estimateSize).toBe(tx.inputs[0]?.unlockingScript?.toBinary().length)
+        expect(estimateSize).toBeGreaterThanOrEqual(tx.inputs[0]?.unlockingScript?.toBinary().length as number)
 
         const passes = await tx.verify(mockChain)
         expect(passes).toBe(true)
