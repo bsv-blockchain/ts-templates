@@ -31,7 +31,6 @@
     "lint": "ts-standard --fix 'src/**/*.ts'",
     "build": "tsc -b && tsconfig-to-dual-package tsconfig.cjs.json",
     "dev": "tsc -b -w",
-    "prepare": "npm run build",
     "prepublish": "npm run build"
   },
   "repository": {
