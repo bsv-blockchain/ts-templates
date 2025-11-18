@@ -1,0 +1,13 @@
+# Test files and directories
+**/__tests__/**
+**/*.test.ts
+**/*.test.js
+**/*.test.d.ts
+**/test/
+**/tests/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Development files
+.DS_Store
