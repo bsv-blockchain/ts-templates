@@ -68,25 +68,30 @@ export default class Inscription implements ScriptTemplate {
   public readonly scriptPrefix?: Uint8Array
   /** Optional script suffix */
   public readonly scriptSuffix?: Uint8Array
+  /** Unknown/custom fields (field number -> data) */
+  public readonly fields?: Map<string, Uint8Array>
 
   /**
    * Creates a new Inscription instance
    *
    * @param file - The inscription file data
-   * @param parent - Optional parent inscription reference (36-byte outpoint)
+   * @param parent - Optional parent inscription reference (32 or 36-byte outpoint)
    * @param scriptPrefix - Optional script prefix
    * @param scriptSuffix - Optional script suffix
+   * @param fields - Optional map of unknown/custom fields
    */
   constructor (
     file: InscriptionFile,
     parent?: Uint8Array,
     scriptPrefix?: Uint8Array,
-    scriptSuffix?: Uint8Array
+    scriptSuffix?: Uint8Array,
+    fields?: Map<string, Uint8Array>
   ) {
     this.file = file
     this.parent = parent
     this.scriptPrefix = scriptPrefix
     this.scriptSuffix = scriptSuffix
+    this.fields = fields
   }
 
   /**
@@ -321,6 +326,7 @@ export default class Inscription implements ScriptTemplate {
       let contentType = ''
       let content = new Uint8Array(0)
       let parent: Uint8Array | undefined
+      const fields = new Map<string, Uint8Array>()
 
       while (pos < chunks.length) {
         if (chunks[pos].op === OP.OP_ENDIF) {
@@ -328,18 +334,24 @@ export default class Inscription implements ScriptTemplate {
           break
         }
 
-        // Read field number
+        // Read field number/key
         const fieldChunk = chunks[pos]
-        let fieldNum: number
+        let fieldNum: number | undefined
+        let fieldKey: string | undefined
 
+        // Handle OP codes for field numbers
         if (fieldChunk.op === OP.OP_0) {
           fieldNum = 0
-        } else if (fieldChunk.op === OP.OP_1) {
-          fieldNum = 1
-        } else if (fieldChunk.op === OP.OP_3) {
-          fieldNum = 3
+        } else if (fieldChunk.op !== undefined && fieldChunk.op > OP.OP_PUSHDATA4 && fieldChunk.op <= OP.OP_16) {
+          fieldNum = fieldChunk.op - 80 // OP_1 = 81, so OP_1 - 80 = 1
+        } else if (fieldChunk.data != null && fieldChunk.data.length === 1) {
+          // Single byte data as field number
+          fieldNum = fieldChunk.data[0]
+        } else if (fieldChunk.data != null && fieldChunk.data.length > 1) {
+          // Multi-byte data as string key (like Go implementation)
+          fieldKey = String.fromCharCode(...fieldChunk.data)
         } else {
-          // Skip unknown field
+          // Unknown field format, skip
           pos++
           continue
         }
@@ -348,32 +360,45 @@ export default class Inscription implements ScriptTemplate {
 
         // Read data
         const dataChunk = chunks[pos]
-        if (pos >= chunks.length || ((dataChunk?.data) == null) || dataChunk.data.length === 0) {
-          pos++
-          continue
+        if (pos >= chunks.length) {
+          break
         }
 
-        const data = new Uint8Array(dataChunk.data)
+        // Data chunk may be empty or have data
+        const data = dataChunk?.data != null ? new Uint8Array(dataChunk.data) : new Uint8Array(0)
         pos++
 
-        // Process field based on number
-        switch (fieldNum) {
-          case 0: // Content
-            content = data
-            break
-          case 1: // MIME type
-            try {
-              contentType = Utils.toUTF8(Array.from(data))
-            } catch {
-              // Invalid UTF-8, use empty string
-              contentType = ''
-            }
-            break
-          case 3: // Parent
-            if (data.length === 36) {
-              parent = data
-            }
-            break
+        // Process field based on number or key
+        if (fieldKey != null) {
+          // String key field - store in fields map
+          fields.set(fieldKey, data)
+        } else if (fieldNum !== undefined) {
+          switch (fieldNum) {
+            case 0: // Content
+              content = data
+              break
+            case 1: // MIME type
+              try {
+                contentType = Utils.toUTF8(Array.from(data))
+              } catch {
+                // Invalid UTF-8, use empty string
+                contentType = ''
+              }
+              break
+            case 3: // Parent - accept both 32 and 36 bytes (like Go)
+              if (data.length === 36) {
+                parent = data
+              } else if (data.length === 32) {
+                // 32-byte txid only - create 36-byte outpoint with vout=0
+                parent = new Uint8Array(36)
+                parent.set(data, 0)
+                // Last 4 bytes are already 0 (vout = 0)
+              }
+              break
+            default:
+              // Store unknown numeric fields in fields map
+              fields.set(fieldNum.toString(), data)
+          }
         }
       }
 
@@ -407,7 +432,7 @@ export default class Inscription implements ScriptTemplate {
         content
       }
 
-      return new Inscription(file, parent, scriptPrefix, scriptSuffix)
+      return new Inscription(file, parent, scriptPrefix, scriptSuffix, fields.size > 0 ? fields : undefined)
     } catch {
       return null
     }

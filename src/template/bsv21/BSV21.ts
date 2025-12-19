@@ -278,7 +278,13 @@ export default class BSV21 implements ScriptTemplate {
           if (data.sym == null || typeof data.sym !== 'string') return null
           if (data.sym.length === 0 || data.sym.length > 32) return null
           if (data.dec !== undefined) {
-            if (typeof data.dec !== 'number' || data.dec < 0 || data.dec > 18) return null
+            // dec must be a string in the JSON - reject if it's a JS number
+            if (typeof data.dec !== 'string') return null
+            const dec = parseInt(data.dec, 10)
+            if (isNaN(dec)) return null
+            if (dec < 0 || dec > 18) return null
+            // Normalize to number for tokenData
+            data.dec = dec
           }
           break
 
