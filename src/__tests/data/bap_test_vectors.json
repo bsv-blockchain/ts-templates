@@ -1,0 +1,18 @@
+{
+  "description": "BAP Attestation Protocol Test Vectors",
+  "version": "1.0.0",
+  "vectors": [
+    {
+      "name": "bap_attest_identity",
+      "description": "BAP identity attestation from real transaction",
+      "txid": "744a55a8637aa191aa058630da51803abbeadc2de3d65b4acace1f5f10789c5b",
+      "expected": {
+        "has_bap": true,
+        "attestation_type": "ATTEST",
+        "signing_address": "15PciHG22SNLQJXMoSUaWVi7WSqc7hCfva",
+        "target_address": "134a6TXxzgQ9Az3w8BcvgdZyA5UqRL89da",
+        "has_signature": true
+      }
+    }
+  ]
+}

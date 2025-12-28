@@ -1,5 +1,5 @@
-import MultiPushDrop from '../MultiPushDrop'
-import { OP, WalletInterface, WalletCounterparty, PubKeyHex, SecurityLevel, Transaction, CompletedProtoWallet, PrivateKey, PublicKey, Utils, Script, Spend, LockingScript, UnlockingScript } from '@bsv/sdk'
+import MultiPushDrop from '../../../template/pushdrop/MultiPushDrop'
+import { OP, WalletInterface, PubKeyHex, SecurityLevel, Transaction, CompletedProtoWallet, PrivateKey, Utils, Script, Spend, LockingScript, UnlockingScript } from '@bsv/sdk'
 
 // Helper function like createDecodeRedeem from PushDrop tests
 const testLockUnlockDecode = async (
