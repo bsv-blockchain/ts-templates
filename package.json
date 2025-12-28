@@ -1,5 +1,5 @@
 {
-  "name": "@bsv/templates",
+  "name": "@bopen-io/ts-templates",
   "version": "1.1.1",
   "type": "module",
   "description": "BSV Blockchain Script Templates",
@@ -44,7 +44,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitcoin-sv/ts-templates.git"
+    "url": "git+https://github.com/b-open-io/ts-templates.git"
   },
   "keywords": [
     "BSV",
@@ -57,10 +57,11 @@
   "author": "BSV Association",
   "license": "SEE LICENSE IN LICENSE.txt",
   "bugs": {
-    "url": "https://github.com/bitcoin-sv/ts-templates/issues"
+    "url": "https://github.com/b-open-io/ts-templates/issues"
   },
-  "homepage": "https://github.com/bitcoin-sv/ts-templates#readme",
+  "homepage": "https://github.com/b-open-io/ts-templates#readme",
   "devDependencies": {
+    "@bsv/wallet-toolbox": "^1.6.23",
     "@types/jest": "^30.0.0",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.5",

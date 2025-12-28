@@ -1,10 +1,8 @@
-
 // Script Templates
-export { default as OpReturn } from './src/template/opreturn/OpReturn.js'
+export { OpReturn } from './src/template/opreturn/OpReturn.js'
 export { default as Metanet } from './src/template/metanet/Metanet.js'
-export { default as MultiPushDrop } from './src/template/pushdrop/MultiPushDrop.js'
+export { MultiPushDrop } from './src/template/pushdrop/MultiPushDrop.js'
 export { default as BSocial } from './src/template/bsocial/BSocial.js'
-// export { default as P2PKH } from './src/template/p2pkh/P2PKH'
 export { default as BitCom } from './src/template/bitcom/BitCom.js'
 export { default as AIP } from './src/template/bitcom/AIP.js'
 export { default as B } from './src/template/bitcom/B.js'
@@ -17,10 +15,10 @@ export { default as OrdLock } from './src/template/ordlock/OrdLock.js'
 export { default as Lock } from './src/template/lockup/Lock.js'
 export { default as Cosign } from './src/template/cosign/Cosign.js'
 
-// Library utilities
-// export { PKHash, Network } from './src/lib/PKHash'
+// From upstream
+export { MultiSigPubkeyHash } from './src/MultiSigPubkeyHash.js'
 
-// Also export additional types/interfaces
+// Type exports
 export type { MultiPushDropDecoded } from './src/template/pushdrop/MultiPushDrop.js'
 export type { BSocialActionType, BSocialContext, BSocialPost, BSocialLike, BSocialFollow, BSocialMessage, BSocialDecoded } from './src/template/bsocial/BSocial.js'
 export type { Protocol, BitComProtocol, BitComDecoded } from './src/template/bitcom/BitCom.js'
@@ -33,3 +31,4 @@ export type { TokenData, TokenInscription, TokenOptions, BSV20TokenData, BSV20In
 export type { OrdLockData } from './src/template/ordlock/OrdLock.js'
 export type { LockData } from './src/template/lockup/Lock.js'
 export type { CosignData } from './src/template/cosign/Cosign.js'
+export type { MultiSigInstructions } from './src/MultiSigPubkeyHash.js'
