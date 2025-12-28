@@ -15,8 +15,7 @@ export { default as OrdLock } from './src/template/ordlock/OrdLock.js'
 export { default as Lock } from './src/template/lockup/Lock.js'
 export { default as Cosign } from './src/template/cosign/Cosign.js'
 
-// From upstream
-export { MultiSigPubkeyHash } from './src/MultiSigPubkeyHash.js'
+export { MultiSigPubkeyHash } from './src/template/multisig/MultiSigPubkeyHash.js'
 
 // Type exports
 export type { MultiPushDropDecoded } from './src/template/pushdrop/MultiPushDrop.js'
@@ -31,4 +30,4 @@ export type { TokenData, TokenInscription, TokenOptions, BSV20TokenData, BSV20In
 export type { OrdLockData } from './src/template/ordlock/OrdLock.js'
 export type { LockData } from './src/template/lockup/Lock.js'
 export type { CosignData } from './src/template/cosign/Cosign.js'
-export type { MultiSigInstructions } from './src/MultiSigPubkeyHash.js'
+export type { MultiSigInstructions } from './src/template/multisig/MultiSigPubkeyHash.js'
