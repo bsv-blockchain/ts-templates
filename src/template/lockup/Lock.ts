@@ -87,7 +87,7 @@ export default class Lock {
       if (!contains(scriptBinary, LOCK_SUFFIX, prefixIndex)) return null
 
       // Extract data starting after PREFIX
-      let pos = prefixIndex + LOCK_PREFIX.length
+      const pos = prefixIndex + LOCK_PREFIX.length
 
       // Parse the data as script chunks
       const remainingBytes = scriptBinary.slice(pos)
