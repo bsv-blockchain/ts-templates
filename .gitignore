@@ -3,6 +3,7 @@ dist
 coverage
 bun.lock
 bun.lockb
+.env
 
 # Debug and temporary files
 debug-*.js
@@ -16,4 +17,5 @@ CLAUDE.md
 
 # macOS
 .DS_Store
-**/.DS_Store*.tgz
+**/.DS_Store
+*.tgz

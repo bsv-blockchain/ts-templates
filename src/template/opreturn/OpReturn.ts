@@ -5,7 +5,7 @@ import { OP, Script, ScriptTemplate, LockingScript, UnlockingScript, Transaction
  *
  * This class provides methods to create OpReturn scripts from data. Only lock script is available.
  */
-export default class OpReturn implements ScriptTemplate {
+export class OpReturn implements ScriptTemplate {
   /**
      * Creates an OpReturn script
      *
