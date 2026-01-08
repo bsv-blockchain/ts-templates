@@ -49,15 +49,17 @@ describe('Inscription', () => {
         content
       }
       const parent = new Uint8Array(36).fill(0x01)
-      const prefix = new Uint8Array([OP.OP_DUP])
-      const suffix = new Uint8Array([OP.OP_CHECKSIG])
+      const prefix = new Script().writeOpCode(OP.OP_DUP)
+      const suffix = new Script().writeOpCode(OP.OP_CHECKSIG)
 
       const inscription = new Inscription(file, parent, prefix, suffix)
 
       expect(inscription.file).toEqual(file)
       expect(inscription.parent).toEqual(parent)
-      expect(inscription.scriptPrefix).toEqual(prefix)
-      expect(inscription.scriptSuffix).toEqual(suffix)
+      expect(inscription.scriptPrefix?.chunks.length).toBe(1)
+      expect(inscription.scriptPrefix?.chunks[0].op).toBe(OP.OP_DUP)
+      expect(inscription.scriptSuffix?.chunks.length).toBe(1)
+      expect(inscription.scriptSuffix?.chunks[0].op).toBe(OP.OP_CHECKSIG)
     })
   })
 
@@ -131,8 +133,8 @@ describe('Inscription', () => {
 
     it('should generate script with prefix and suffix', () => {
       const content = new Uint8Array(Utils.toArray('test', 'utf8'))
-      const prefix = new Uint8Array([OP.OP_DUP])
-      const suffix = new Uint8Array([OP.OP_CHECKSIG])
+      const prefix = new Script().writeOpCode(OP.OP_DUP)
+      const suffix = new Script().writeOpCode(OP.OP_CHECKSIG)
 
       const inscription = Inscription.create(content, 'text/plain', {
         scriptPrefix: prefix,

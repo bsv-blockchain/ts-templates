@@ -1,4 +1,15 @@
-import { Script, Utils } from '@bsv/sdk'
+import {
+  BigNumber,
+  type LockingScript,
+  OP,
+  P2PKH,
+  type PrivateKey,
+  Script,
+  type Transaction,
+  TransactionSignature,
+  UnlockingScript,
+  Utils,
+} from '@bsv/sdk'
 
 /**
  * OrdLock PREFIX - sCrypt contract prefix shared with Lock template
@@ -167,5 +178,149 @@ export default class OrdLock {
   static isPurchase (unlockingScript: Script): boolean {
     const scriptBinary = unlockingScript.toBinary()
     return indexOf(scriptBinary, ORDLOCK_SUFFIX) !== -1
+  }
+
+  /**
+   * Creates an OrdLock locking script for listing an ordinal
+   *
+   * @param cancelAddress - Address that can cancel the listing
+   * @param payAddress - Address that receives payment on purchase
+   * @param price - Listing price in satoshis
+   * @returns The OrdLock locking script
+   */
+  static lock (cancelAddress: string, payAddress: string, price: number): Script {
+    const cancelPkh = Utils.fromBase58Check(cancelAddress).data as number[]
+    const payPkh = Utils.fromBase58Check(payAddress).data as number[]
+
+    return new Script()
+      .writeScript(Script.fromBinary(ORDLOCK_PREFIX))
+      .writeBin(cancelPkh)
+      .writeBin(OrdLock.buildOutput(price, new P2PKH().lock(payPkh).toBinary()))
+      .writeScript(Script.fromBinary(ORDLOCK_SUFFIX))
+  }
+
+  /**
+   * Builds a serialized transaction output (satoshis + script)
+   *
+   * @param satoshis - Output value
+   * @param script - Locking script as binary
+   * @returns Serialized output bytes
+   */
+  static buildOutput (satoshis: number, script: number[]): number[] {
+    const writer = new Utils.Writer()
+    writer.writeUInt64LEBn(new BigNumber(satoshis))
+    writer.writeVarIntNum(script.length)
+    writer.write(script)
+    return writer.toArray()
+  }
+
+  /**
+   * Creates an unlocking script for cancelling a listing
+   *
+   * @param privateKey - Private key for the cancel address
+   * @param signOutputs - Signature scope for outputs
+   * @param anyoneCanPay - Whether to use ANYONECANPAY
+   * @param sourceSatoshis - Input satoshis (optional if sourceTransaction provided)
+   * @param lockingScript - Input locking script (optional if sourceTransaction provided)
+   * @returns Unlock template with sign and estimateLength methods
+   */
+  static cancelListing (
+    privateKey: PrivateKey,
+    signOutputs: 'all' | 'none' | 'single' = 'all',
+    anyoneCanPay = false,
+    sourceSatoshis?: number,
+    lockingScript?: Script
+  ): {
+    sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>
+    estimateLength: () => Promise<number>
+  } {
+    const p2pkh = new P2PKH().unlock(privateKey, signOutputs, anyoneCanPay, sourceSatoshis, lockingScript)
+    return {
+      sign: async (tx: Transaction, inputIndex: number) => {
+        return (await p2pkh.sign(tx, inputIndex)).writeOpCode(OP.OP_1)
+      },
+      estimateLength: async () => {
+        return 107
+      }
+    }
+  }
+
+  /**
+   * Creates an unlocking script for purchasing a listing
+   *
+   * The purchase path requires:
+   * - Output 0: The ordinal going to buyer
+   * - Output 1: Payment to seller (must match payout in OrdLock)
+   * - Output 2+: Additional outputs (marketplace fees, etc.)
+   *
+   * No signature is required - the contract validates the outputs match.
+   *
+   * @param sourceSatoshis - Input satoshis (optional if sourceTransaction provided)
+   * @param lockingScript - Input locking script (optional if sourceTransaction provided)
+   * @returns Unlock template with sign and estimateLength methods
+   */
+  static purchaseListing (
+    sourceSatoshis?: number,
+    lockingScript?: Script
+  ): {
+    sign: (tx: Transaction, inputIndex: number) => Promise<UnlockingScript>
+    estimateLength: (tx: Transaction, inputIndex: number) => Promise<number>
+  } {
+    const purchase = {
+      sign: async (tx: Transaction, inputIndex: number) => {
+        if (tx.outputs.length < 2) {
+          throw new Error('Malformed transaction: requires at least 2 outputs')
+        }
+        const script = new UnlockingScript()
+          .writeBin(OrdLock.buildOutput(
+            tx.outputs[0].satoshis ?? 0,
+            tx.outputs[0].lockingScript.toBinary()
+          ))
+        if (tx.outputs.length > 2) {
+          const writer = new Utils.Writer()
+          for (const output of tx.outputs.slice(2)) {
+            writer.write(OrdLock.buildOutput(output.satoshis ?? 0, output.lockingScript.toBinary()))
+          }
+          script.writeBin(writer.toArray())
+        } else {
+          script.writeOpCode(OP.OP_0)
+        }
+
+        const input = tx.inputs[inputIndex]
+        let sourceSats = sourceSatoshis as number
+        if (!sourceSats && input.sourceTransaction) {
+          sourceSats = input.sourceTransaction.outputs[input.sourceOutputIndex].satoshis as number
+        } else if (!sourceSatoshis) {
+          throw new Error('sourceTransaction or sourceSatoshis is required')
+        }
+
+        const sourceTXID = (input.sourceTXID ?? input.sourceTransaction?.id('hex')) as string
+        let subscript = lockingScript as LockingScript
+        if (!subscript) {
+          subscript = input.sourceTransaction?.outputs[input.sourceOutputIndex].lockingScript as LockingScript
+        }
+        const preimage = TransactionSignature.format({
+          sourceTXID,
+          sourceOutputIndex: input.sourceOutputIndex,
+          sourceSatoshis: sourceSats,
+          transactionVersion: tx.version,
+          otherInputs: [],
+          inputIndex,
+          outputs: tx.outputs,
+          inputSequence: input.sequence ?? 0xffffffff,
+          subscript,
+          lockTime: tx.lockTime,
+          scope: TransactionSignature.SIGHASH_ALL |
+            TransactionSignature.SIGHASH_ANYONECANPAY |
+            TransactionSignature.SIGHASH_FORKID
+        })
+
+        return script.writeBin(preimage).writeOpCode(OP.OP_0)
+      },
+      estimateLength: async (tx: Transaction, inputIndex: number) => {
+        return (await purchase.sign(tx, inputIndex)).toBinary().length
+      }
+    }
+    return purchase
   }
 }
