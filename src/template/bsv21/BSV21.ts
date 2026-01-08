@@ -142,7 +142,11 @@ export default class BSV21 implements ScriptTemplate {
     }
 
     // Create inscription with token JSON
-    const jsonContent = JSON.stringify(tokenData)
+    // Note: dec must be serialized as a string per BSV-20 protocol
+    const wireFormat = { ...tokenData, dec: tokenData.dec !== undefined ? tokenData.dec.toString() : undefined }
+    // Remove undefined fields
+    Object.keys(wireFormat).forEach(key => wireFormat[key as keyof typeof wireFormat] === undefined && delete wireFormat[key as keyof typeof wireFormat])
+    const jsonContent = JSON.stringify(wireFormat)
     const inscription = Inscription.fromText(jsonContent, 'application/bsv-20', options)
 
     return new BSV21(tokenData, inscription)
@@ -341,7 +345,7 @@ export default class BSV21 implements ScriptTemplate {
       const options: BSV21Options = {
         parent: this.inscription.parent,
         scriptPrefix: this.inscription.scriptPrefix,
-        scriptSuffix: new Uint8Array(lockingScript.toBinary())
+        scriptSuffix: lockingScript
       }
 
       // Create new inscription with suffix

@@ -430,7 +430,7 @@ describe('BSV21', () => {
 
     it('should preserve inscription properties', () => {
       const parent = new Uint8Array(36).fill(1)
-      const prefix = new Uint8Array([0x51, 0x52]) // OP_1 OP_2
+      const prefix = new Script().writeOpCode(OP.OP_1).writeOpCode(OP.OP_2)
 
       const token = BSV21.deployMint('PROPS', BigInt(1000), 0, undefined, {
         parent,
@@ -443,7 +443,10 @@ describe('BSV21', () => {
       expect(decoded).not.toBeNull()
       if (decoded != null) {
         expect(decoded.inscription.parent).toEqual(parent)
-        expect(decoded.inscription.scriptPrefix).toEqual(prefix)
+        // scriptPrefix should be a Script with same chunks
+        expect(decoded.inscription.scriptPrefix?.chunks.length).toBe(2)
+        expect(decoded.inscription.scriptPrefix?.chunks[0].op).toBe(OP.OP_1)
+        expect(decoded.inscription.scriptPrefix?.chunks[1].op).toBe(OP.OP_2)
       }
     })
   })

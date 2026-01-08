@@ -48,10 +48,10 @@ export interface BSV20TokenData extends TokenData {
 export interface TokenOptions {
   /** Optional parent inscription reference (36-byte outpoint) */
   parent?: Uint8Array
-  /** Optional script prefix to prepend before inscription */
-  scriptPrefix?: Uint8Array
-  /** Optional script suffix to append after inscription */
-  scriptSuffix?: Uint8Array
+  /** Optional script prefix to prepend before inscription (e.g., P2PKH locking script) */
+  scriptPrefix?: Script | LockingScript
+  /** Optional script suffix to append after inscription (e.g., OP_RETURN data) */
+  scriptSuffix?: Script | LockingScript
 }
 
 /**
@@ -186,7 +186,11 @@ export default class BSV20 implements ScriptTemplate {
     }
 
     // Create inscription with token JSON
-    const jsonContent = JSON.stringify(tokenData)
+    // Note: dec must be serialized as a string per BSV-20 protocol
+    const wireFormat = { ...tokenData, dec: tokenData.dec !== undefined ? tokenData.dec.toString() : undefined }
+    // Remove undefined fields
+    Object.keys(wireFormat).forEach(key => wireFormat[key as keyof typeof wireFormat] === undefined && delete wireFormat[key as keyof typeof wireFormat])
+    const jsonContent = JSON.stringify(wireFormat)
     const inscription = Inscription.fromText(jsonContent, 'application/bsv-20', options)
 
     return new BSV20(tokenData, inscription)
@@ -355,7 +359,13 @@ export default class BSV20 implements ScriptTemplate {
             return null
           }
           if (data.dec !== undefined) {
-            if (typeof data.dec !== 'number' || data.dec < 0 || data.dec > 18) return null
+            // dec must be a string in the JSON - reject if it's a JS number
+            if (typeof data.dec !== 'string') return null
+            const dec = parseInt(data.dec, 10)
+            if (isNaN(dec)) return null
+            if (dec < 0 || dec > 18) return null
+            // Normalize to number for tokenData
+            data.dec = dec
           }
           if (data.lim !== undefined) {
             if (typeof data.lim !== 'string') return null
@@ -422,7 +432,7 @@ export default class BSV20 implements ScriptTemplate {
       const options: BSV20Options = {
         parent: this.inscription.parent,
         scriptPrefix: this.inscription.scriptPrefix,
-        scriptSuffix: new Uint8Array(lockingScript.toBinary())
+        scriptSuffix: lockingScript
       }
 
       // Create new inscription with suffix

@@ -29,10 +29,10 @@ export interface InscriptionFile {
 export interface InscriptionOptions {
   /** Optional parent inscription reference (36-byte outpoint) */
   parent?: Uint8Array
-  /** Optional script prefix to prepend before inscription */
-  scriptPrefix?: Uint8Array
-  /** Optional script suffix to append after inscription */
-  scriptSuffix?: Uint8Array
+  /** Optional script prefix to prepend before inscription (e.g., P2PKH locking script) */
+  scriptPrefix?: Script | LockingScript
+  /** Optional script suffix to append after inscription (e.g., OP_RETURN data) */
+  scriptSuffix?: Script | LockingScript
 }
 
 /**
@@ -65,9 +65,9 @@ export default class Inscription implements ScriptTemplate {
   /** Optional parent inscription reference */
   public readonly parent?: Uint8Array
   /** Optional script prefix */
-  public readonly scriptPrefix?: Uint8Array
+  public readonly scriptPrefix?: Script | LockingScript
   /** Optional script suffix */
-  public readonly scriptSuffix?: Uint8Array
+  public readonly scriptSuffix?: Script | LockingScript
   /** Unknown/custom fields (field number -> data) */
   public readonly fields?: Map<string, Uint8Array>
 
@@ -76,15 +76,15 @@ export default class Inscription implements ScriptTemplate {
    *
    * @param file - The inscription file data
    * @param parent - Optional parent inscription reference (32 or 36-byte outpoint)
-   * @param scriptPrefix - Optional script prefix
-   * @param scriptSuffix - Optional script suffix
+   * @param scriptPrefix - Optional script prefix (Script or LockingScript)
+   * @param scriptSuffix - Optional script suffix (Script or LockingScript)
    * @param fields - Optional map of unknown/custom fields
    */
   constructor (
     file: InscriptionFile,
     parent?: Uint8Array,
-    scriptPrefix?: Uint8Array,
-    scriptSuffix?: Uint8Array,
+    scriptPrefix?: Script | LockingScript,
+    scriptSuffix?: Script | LockingScript,
     fields?: Map<string, Uint8Array>
   ) {
     this.file = file
@@ -103,11 +103,10 @@ export default class Inscription implements ScriptTemplate {
   lock (): LockingScript {
     const script = new Script()
 
-    // Add script prefix if present
+    // Add script prefix if present - iterate over chunks to preserve data pushes
     if (this.scriptPrefix != null) {
-      // Treat prefix as raw opcodes, not data
-      for (const opcode of this.scriptPrefix) {
-        script.writeOpCode(opcode)
+      for (const chunk of this.scriptPrefix.chunks) {
+        script.chunks.push(chunk)
       }
     }
 
@@ -135,11 +134,10 @@ export default class Inscription implements ScriptTemplate {
     // End inscription envelope: OP_ENDIF
     script.writeOpCode(OP.OP_ENDIF)
 
-    // Add script suffix if present
+    // Add script suffix if present - iterate over chunks to preserve data pushes
     if (this.scriptSuffix != null) {
-      // Treat suffix as raw opcodes, not data
-      for (const opcode of this.scriptSuffix) {
-        script.writeOpCode(opcode)
+      for (const chunk of this.scriptSuffix.chunks) {
+        script.chunks.push(chunk)
       }
     }
 
@@ -306,19 +304,13 @@ export default class Inscription implements ScriptTemplate {
         return null
       }
 
-      // Extract prefix (everything before inscription)
-      let scriptPrefix: Uint8Array | undefined
+      // Extract prefix (everything before inscription) - preserve as Script with proper chunks
+      let scriptPrefix: Script | undefined
       if (inscriptionStart > 0) {
-        const prefixScript = new Script()
+        scriptPrefix = new Script()
         for (let i = 0; i < inscriptionStart; i++) {
-          const chunk = chunks[i]
-          if (((chunk?.data) != null) && chunk.data.length > 0) {
-            prefixScript.writeBin(chunk.data)
-          } else if (chunk?.op !== undefined) {
-            prefixScript.writeOpCode(chunk.op)
-          }
+          scriptPrefix.chunks.push(chunks[i])
         }
-        scriptPrefix = new Uint8Array(prefixScript.toBinary())
       }
 
       // Parse inscription fields
@@ -402,19 +394,13 @@ export default class Inscription implements ScriptTemplate {
         }
       }
 
-      // Extract suffix (everything after OP_ENDIF)
-      let scriptSuffix: Uint8Array | undefined
+      // Extract suffix (everything after OP_ENDIF) - preserve as Script with proper chunks
+      let scriptSuffix: Script | undefined
       if (pos < chunks.length) {
-        const suffixScript = new Script()
+        scriptSuffix = new Script()
         for (let i = pos; i < chunks.length; i++) {
-          const chunk = chunks[i]
-          if (((chunk?.data) != null) && chunk.data.length > 0) {
-            suffixScript.writeBin(chunk.data)
-          } else if (chunk?.op !== undefined) {
-            suffixScript.writeOpCode(chunk.op)
-          }
+          scriptSuffix.chunks.push(chunks[i])
         }
-        scriptSuffix = new Uint8Array(suffixScript.toBinary())
       }
 
       // Must have content to be valid
