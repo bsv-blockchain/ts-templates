@@ -52,7 +52,7 @@ export interface MultiPushDropDecoded {
  * there is no constraint enforcing that any group members are kept in the loop. Any group
  * member can trivially destroy the token. For more practical non-trusted arrangements,
  * techniques like OP_PUSH_TX should be used instead.
- * 
+ *
  * There's also a known bug in this implementation where it won't work with over around 120
  * keys but involving more than a few people than just a few into a FULLY TRUST BASED exchange
  * is never a good idea. Use a more robust, application-specific mechanism.

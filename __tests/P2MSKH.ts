@@ -1,6 +1,6 @@
 import { Transaction, UnlockingScript, MerklePath, P2PKH, PrivateKey, PublicKey } from '@bsv/sdk';
 import { MockChain, makeWallet } from './test-utils';
-import { MultiSigPubkeyHash } from '../src/MultiSigPubkeyHash';
+import { P2MSKH } from '../src/P2MSKH';
 
 const key = PrivateKey.fromRandom()
 
@@ -27,7 +27,7 @@ async function createSourceTransaction(threshold: number, totalKeys: number) {
 
     const keyID = new Date().toISOString()
 
-    const { address: multiSigAddress, pubkeys } = await MultiSigPubkeyHash.addressBRC29(wallet, publicKeys, keyID, threshold)
+    const { address: multiSigAddress, pubkeys } = await P2MSKH.addressBRC29(wallet, publicKeys, keyID, threshold)
     
     const customInstructions = {
         keyID,
@@ -43,7 +43,7 @@ async function createSourceTransaction(threshold: number, totalKeys: number) {
     })
     sourceTransaction.addOutput({
         satoshis: 1,
-        lockingScript: new MultiSigPubkeyHash().lock(multiSigAddress)
+        lockingScript: new P2MSKH().lock(multiSigAddress)
     })
     sourceTransaction.addOutput({
         satoshis: 30,
@@ -56,7 +56,7 @@ async function createSourceTransaction(threshold: number, totalKeys: number) {
     return { players, sourceTransaction, customInstructions, mockChain }
 }
 
-describe('MultiSigPubkeyHash', () => {
+describe('P2MSKH', () => {
     it('should create and spend a 1 of 3 multisig and the estimated size should be known prior to signing', async () => {
     
         const { players, sourceTransaction, customInstructions, mockChain } = await createSourceTransaction(1, 3)
@@ -65,7 +65,7 @@ describe('MultiSigPubkeyHash', () => {
         tx.addInput({
             sourceTransaction,
             sourceOutputIndex: 0,
-            unlockingScriptTemplate: new MultiSigPubkeyHash().unlock(players[0], customInstructions)
+            unlockingScriptTemplate: new P2MSKH().unlock(players[0], customInstructions)
         })
         tx.addInput({
             sourceTransaction,
@@ -98,7 +98,7 @@ describe('MultiSigPubkeyHash', () => {
         tx.addInput({
             sourceTransaction,
             sourceOutputIndex: 0,
-            unlockingScriptTemplate: new MultiSigPubkeyHash().unlock(players[0], customInstructions)
+            unlockingScriptTemplate: new P2MSKH().unlock(players[0], customInstructions)
         })
         tx.addInput({
             sourceTransaction,
@@ -117,7 +117,7 @@ describe('MultiSigPubkeyHash', () => {
         for (let i = 1; i < n; i++) {
             const psbt = currentTx.toAtomicBEEF()
             currentTx = Transaction.fromAtomicBEEF(psbt)
-            currentTx.inputs[0].unlockingScriptTemplate = new MultiSigPubkeyHash().unlock(players[i], customInstructions, currentTx.inputs[0].unlockingScript)
+            currentTx.inputs[0].unlockingScriptTemplate = new P2MSKH().unlock(players[i], customInstructions, currentTx.inputs[0].unlockingScript)
             await currentTx.sign()
         }
 
@@ -130,30 +130,30 @@ describe('MultiSigPubkeyHash', () => {
         const publicKeys = ['024964ca56207e80b55e21c4da143c20cde3649643f27dcf944e96f8b8265d773c', '03110092d60eaf76313c14cde4666ec0a960f3d9e8446cf7687d9a96501585328b']
         const keyID = new Date().toISOString()
         const threshold = 0
-        await expect(MultiSigPubkeyHash.addressBRC29(wallet, publicKeys, keyID, threshold)).rejects.toThrow('threshold must be between 1 and the number of pubkeys')
+        await expect(P2MSKH.addressBRC29(wallet, publicKeys, keyID, threshold)).rejects.toThrow('threshold must be between 1 and the number of pubkeys')
     })
 
     it('should fail to create a 0 of 2 multisig without address derivation', async () => {
         const publicKeys = ['024964ca56207e80b55e21c4da143c20cde3649643f27dcf944e96f8b8265d773c', '03110092d60eaf76313c14cde4666ec0a960f3d9e8446cf7687d9a96501585328b'].map(p => PublicKey.fromString(p))
         const threshold = 0
-        expect(() => new MultiSigPubkeyHash().lock(undefined, publicKeys, threshold)).toThrow('threshold must be between 1 and the number of pubkeys')
+        expect(() => new P2MSKH().lock(undefined, publicKeys, threshold)).toThrow('threshold must be between 1 and the number of pubkeys')
     })
 
     it('should fail to create a 3 of 2 multisig', async () => {
         const publicKeys = ['024964ca56207e80b55e21c4da143c20cde3649643f27dcf944e96f8b8265d773c', '03110092d60eaf76313c14cde4666ec0a960f3d9e8446cf7687d9a96501585328b'].map(p => PublicKey.fromString(p))
         const threshold = 3
-        expect(() => new MultiSigPubkeyHash().lock(undefined, publicKeys, threshold)).toThrow('threshold must be between 1 and the number of pubkeys')
+        expect(() => new P2MSKH().lock(undefined, publicKeys, threshold)).toThrow('threshold must be between 1 and the number of pubkeys')
     })
 
     it('should fail to create a 1 of 2 multisig with only one pubkey', async () => {
         const publicKeys = ['024964ca56207e80b55e21c4da143c20cde3649643f27dcf944e96f8b8265d773c'].map(p => PublicKey.fromString(p))
         const threshold = 1
-        expect(() => new MultiSigPubkeyHash().lock(undefined, publicKeys, threshold)).toThrow('at least 2 pubkeys are required')
+        expect(() => new P2MSKH().lock(undefined, publicKeys, threshold)).toThrow('at least 2 pubkeys are required')
     })
 
     it('should fail to create a 3 of 11 multisig', async () => {
         const publicKeys = Array(11).fill('024964ca56207e80b55e21c4da143c20cde3649643f27dcf944e96f8b8265d773c').map(p => PublicKey.fromString(p))
         const threshold = 3
-        expect(() => new MultiSigPubkeyHash().lock(undefined, publicKeys, threshold)).toThrow('total must be less than or equal to 10')
+        expect(() => new P2MSKH().lock(undefined, publicKeys, threshold)).toThrow('total must be less than or equal to 10')
     })
 })
