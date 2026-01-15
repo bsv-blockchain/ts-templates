@@ -82,24 +82,21 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
         if (!threshold || threshold < 1 || threshold > total) throw new Error('threshold must be between 1 and the number of pubkeys')
         if (total > 10) throw new Error('total must be less than or equal to 10')
     
-        const script = new LockingScript();
-        for (let i = 0; i < total - 1; i++) {
-            script.writeOpCode(OP.OP_CAT)
-        }
+        const script = new LockingScript()
         script
             .writeOpCode(OP.OP_DUP)
             .writeOpCode(OP.OP_HASH160)
             .writeBin(hash)
             .writeOpCode(OP.OP_EQUALVERIFY)
             .writeNumber(threshold)
-            .writeOpCode(OP.OP_SWAP);
+            .writeOpCode(OP.OP_SWAP)
         for (let i = 0; i < total - 1; i++) {
             script
                 .writeNumber(33)
                 .writeOpCode(OP.OP_SPLIT)
         }
         script.writeNumber(total)
-        script.writeOpCode(OP.OP_CHECKMULTISIG);
+        script.writeOpCode(OP.OP_CHECKMULTISIG)
 
         return script
     }
@@ -121,9 +118,8 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
                 if (!workingUnlockingScript) {
                     workingUnlockingScript = new UnlockingScript()
                     workingUnlockingScript.writeOpCode(OP.OP_0)
-                    customInstructions.pubkeys.forEach((pubkey) => {
-                        workingUnlockingScript!.writeBin(PublicKey.fromString(pubkey).toDER() as number[])
-                    })
+                    const pubkeys = concatPubkeys(customInstructions.pubkeys.map(p => PublicKey.fromString(p)))
+                    workingUnlockingScript.writeBin(pubkeys)
                 }
 
                 let signatureScope = TransactionSignature.SIGHASH_FORKID;
@@ -197,25 +193,24 @@ export class MultiSigPubkeyHash implements ScriptTemplate {
                 workingUnlockingScript.writeBin(sigForScript)
                 const chunkforSig = workingUnlockingScript.chunks.pop() as ScriptChunk
                 // add it to the array before the pubkeys, pushing the other content to the right
-                workingUnlockingScript.chunks.splice(workingUnlockingScript.chunks.length - customInstructions.pubkeys.length, 0, chunkforSig)
+                workingUnlockingScript.chunks.splice(workingUnlockingScript.chunks.length - 1, 0, chunkforSig)
                 return workingUnlockingScript
             },
 
             estimateLength: (tx: Transaction, inputIndex: number) => {
-                let numberOfPubkeys = 2
-                let numberOfSignatures = 1
-                const staticLength = 1
+                let numberOfPubkeys
+                let numberOfSignatures
+                const staticLength = 8
                 const input = tx.inputs[inputIndex];
                 const lockingScript = input.sourceTransaction?.outputs[input.sourceOutputIndex].lockingScript;
                 if (!lockingScript) {
                     return Promise.resolve(1000) // guess
                 }
 
-                const totalChunk = lockingScript?.chunks[lockingScript.chunks.length - 2] as { op: number, data: number[] }
+                const totalChunk = lockingScript.chunks.at(-2) as { op: number, data: number[] }
                 numberOfPubkeys = numberFromScriptChunk(totalChunk)
 
-                const thresholdPos = lockingScript.chunks.map(chunk => chunk.op === OP.OP_EQUALVERIFY).indexOf(true) + 1
-                const thresholdChunk = lockingScript?.chunks[thresholdPos] as { op: number, data: number[] }
+                const thresholdChunk = lockingScript.chunks[4] as { op: number, data: number[] }
                 numberOfSignatures = numberFromScriptChunk(thresholdChunk)
                 return Promise.resolve(staticLength + (numberOfSignatures * 74) +   (numberOfPubkeys * 34))
             }
