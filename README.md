@@ -1,5 +1,9 @@
 # BSV Script Templates
 
+> **⚠️ This repository is being archived.**
+>
+> Development has moved to the [ts-stack monorepo](https://github.com/bsv-blockchain/ts-stack/tree/main/packages/helpers/ts-templates). Open issues will be migrated there. This repository will be archived in the coming days — please open new issues and PRs in the monorepo going forward.
+
 BSV BLOCKCHAIN | Script Templates
 
 A collection of script templates for use with the official BSV TypeScript SDK
